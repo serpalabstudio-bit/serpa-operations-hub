@@ -15,7 +15,8 @@ async function authorize(request:NextRequest){
  if(error||!user)throw new Error('Sesión caducada.');
  const admin=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
  const {data:members,error:memberError}=await admin.from('organization_members').select('organization_id').eq('user_id',user.id).eq('role','admin').limit(1);
- if(memberError||!members?.length)throw new Error('Solo los administradores pueden gestionar usuarios.');
+ if(memberError)throw new Error('No se pudo comprobar el rol en organization_members: '+memberError.message+'. Comprueba que SUPABASE_SERVICE_ROLE_KEY corresponda al mismo proyecto que NEXT_PUBLIC_SUPABASE_URL.');
+ if(!members?.length)throw new Error('La cuenta autenticada no figura como administrador en organization_members. Comprueba el rol de este usuario en Supabase.');
  return {admin,org:members[0].organization_id,url,publicKey};
 }
 async function emailsForOrg(admin:Awaited<ReturnType<typeof authorize>>['admin'],org:string){

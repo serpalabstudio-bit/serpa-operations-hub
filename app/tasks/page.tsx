@@ -5,80 +5,30 @@ import Shell from '../../components/shell';
 import {supabase} from '../../lib/supabase';
 
 type Status='todo'|'in_progress'|'blocked'|'done';
-type Task={id:string;title:string;status:Status;due_date:string|null;estimated_hours:number};
-const STATUS_OPTIONS:{value:Status;label:string}[]=[
-  {value:'todo',label:'Pendientes'},
-  {value:'in_progress',label:'En curso'},
-  {value:'blocked',label:'Bloqueadas'},
-  {value:'done',label:'Completadas'}
-];
+type Task={id:string;organization_id:string;title:string;description:string|null;created_at:string;status:Status;assigned_to:string|null;due_date:string|null;start_date:string|null;estimated_hours:number};
+type Member={user_id:string;role:string;display_name:string};
+type Form={title:string;description:string;status:Status;assigned_to:string;due_date:string;start_date:string;estimated_hours:string};
+const STATUSES:{value:Status;label:string}[]=[{value:'todo',label:'Pendientes'},{value:'in_progress',label:'En curso'},{value:'blocked',label:'Bloqueadas'},{value:'done',label:'Completadas'}];
+const empty:Form={title:'',description:'',status:'todo',assigned_to:'',due_date:'',start_date:'',estimated_hours:'1'};
 export default function Tasks(){
-  const router=useRouter();
-  const [tasks,setTasks]=useState<Task[]>([]);
-  const [activeStatus,setActiveStatus]=useState<Status>('todo');
-  const [title,setTitle]=useState('');
-  const [hours,setHours]=useState('1');
-  const [due,setDue]=useState('');
-  const [error,setError]=useState('');
-  const [busy,setBusy]=useState(false);
-  const [updatingId,setUpdatingId]=useState<string|null>(null);
-  const [loading,setLoading]=useState(true);
-  const client=supabase();
-  async function refresh(){
-    const {data,error}=await client.from('tasks').select('id,title,status,due_date,estimated_hours').order('created_at',{ascending:false});
-    if(error)setError(error.message);
-    else {setTasks((data||[]) as Task[]);setError('');}
-    setLoading(false);
-  }
-  useEffect(()=>{client.auth.getUser().then(({data})=>{if(!data.user)router.replace('/login');else void refresh()})},[]);
-  const counts=useMemo(()=>Object.fromEntries(STATUS_OPTIONS.map(s=>[s.value,tasks.filter(t=>t.status===s.value).length])) as Record<Status,number>,[tasks]);
-  const visibleTasks=useMemo(()=>tasks.filter(t=>t.status===activeStatus),[tasks,activeStatus]);
-  async function add(e:React.FormEvent){
-    e.preventDefault();setBusy(true);setError('');
-    try{
-      const {data:{user}}=await client.auth.getUser();
-      if(!user){router.replace('/login');return;}
-      const {data:membership,error:memberError}=await client.from('organization_members').select('organization_id').eq('user_id',user.id).limit(1).single();
-      if(memberError||!membership){setError(memberError?.message||'El usuario aún no pertenece a una organización.');return;}
-      const {error}=await client.from('tasks').insert({organization_id:membership.organization_id,title,estimated_hours:Number(hours),due_date:due||null,created_by:user.id,status:'todo'});
-      if(error)setError(error.message);
-      else{setTitle('');setDue('');setActiveStatus('todo');await refresh();}
-    }finally{setBusy(false);}
-  }
-  async function change(t:Task,status:Status){
-    if(t.status===status)return;
-    setError('');setUpdatingId(t.id);
-    const {data,error}=await client.from('tasks').update({status}).eq('id',t.id).select('id,status').single();
-    if(error)setError('No se pudo cambiar el estado: '+error.message);
-    else if(!data)setError('No se pudo confirmar la actualización. Comprueba los permisos de la tarea.');
-    else setTasks(prev=>prev.map(item=>item.id===t.id?{...item,status}:item));
-    setUpdatingId(null);
-  }
-  return <Shell>
-    <p className="eyebrow">EJECUCIÓN</p>
-    <h1>Mis tareas · Equipo</h1>
-    <p className="muted">Organiza el trabajo por estado. Los cambios se guardan en Supabase y las tareas se mueven automáticamente a su pestaña.</p>
-    <div className="panel">
-      <h2>Nueva tarea</h2>
-      <form className="task-form" onSubmit={add}>
-        <label>Título<input required value={title} onChange={e=>setTitle(e.target.value)} placeholder="Ej. Preparar demo de automatización"/></label>
-        <label>Horas estimadas<input required min="0" step="0.25" type="number" value={hours} onChange={e=>setHours(e.target.value)}/></label>
-        <label>Fecha límite<input type="date" value={due} onChange={e=>setDue(e.target.value)}/></label>
-        <button disabled={busy}>{busy?'Guardando…':'Guardar tarea'}</button>
-      </form>
-    </div>
-    <div className="panel">
-      <h2>Tareas registradas <span className="muted">({tasks.length})</span></h2>
-      <div className="task-tabs" role="tablist" aria-label="Filtrar tareas por estado">
-        {STATUS_OPTIONS.map(s=><button type="button" role="tab" aria-selected={activeStatus===s.value} className={'task-tab '+(activeStatus===s.value?'task-tab-active':'')} key={s.value} onClick={()=>setActiveStatus(s.value)}>{s.label} <span className="task-count">{counts[s.value]}</span></button>)}
-      </div>
-      {error&&<p className="error" role="alert">{error}</p>}
-      {loading?<p className="muted">Cargando tareas…</p>:visibleTasks.length===0?<p className="muted task-empty">No hay tareas en «{STATUS_OPTIONS.find(s=>s.value===activeStatus)?.label}».</p>:visibleTasks.map(t=><div className="task-row" key={t.id}>
-        <div><strong>{t.title}</strong><p className="muted">{t.estimated_hours} h · {t.due_date||'Sin fecha'}</p></div>
-        <select aria-label={'Estado de '+t.title} value={t.status} disabled={updatingId===t.id} onChange={e=>void change(t,e.target.value as Status)}>
-          {STATUS_OPTIONS.map(s=><option key={s.value} value={s.value}>{s.label}</option>)}
-        </select>
-      </div>)}
-    </div>
-  </Shell>;
+ const router=useRouter();const client=useMemo(()=>supabase(),[]);
+ const [tasks,setTasks]=useState<Task[]>([]);const [members,setMembers]=useState<Member[]>([]);const [org,setOrg]=useState('');const [userId,setUserId]=useState('');
+ const [active,setActive]=useState<Status>('todo');const [form,setForm]=useState<Form>(empty);const [editing,setEditing]=useState<Task|null>(null);const [detail,setDetail]=useState<Task|null>(null);const [showForm,setShowForm]=useState(false);const [busy,setBusy]=useState(false);const [loading,setLoading]=useState(true);const [error,setError]=useState('');
+ async function refresh(){const {data,error}=await client.from('tasks').select('id,organization_id,title,description,created_at,status,assigned_to,due_date,start_date,estimated_hours').order('created_at',{ascending:false});if(error)setError(error.message);else{setTasks((data||[]) as Task[]);setError('');}setLoading(false);}
+ useEffect(()=>{let cancelled=false;(async()=>{const {data:{user}}=await client.auth.getUser();if(!user){router.replace('/login');return;}if(cancelled)return;setUserId(user.id);const {data:membership,error:memberError}=await client.from('organization_members').select('organization_id').eq('user_id',user.id).limit(1).maybeSingle();if(memberError||!membership){setError(memberError?.message||'No perteneces a una organización.');setLoading(false);return;}setOrg(membership.organization_id);const {data:memberRows,error:membersError}=await client.from('organization_members').select('user_id,role').eq('organization_id',membership.organization_id);if(membersError)setError(membersError.message);const rows=memberRows||[];const ids=rows.map(m=>m.user_id);let names:Record<string,string>={};if(ids.length){const {data:profiles}=await client.from('profiles').select('id,display_name').in('id',ids);for(const p of profiles||[])names[p.id]=p.display_name||'';}setMembers(rows.map((m,i)=>({...m,display_name:names[m.user_id]||`Socio ${String.fromCharCode(65+i)}`})));await refresh();})();return()=>{cancelled=true};},[client,router]);
+ const counts=useMemo(()=>Object.fromEntries(STATUSES.map(s=>[s.value,tasks.filter(t=>t.status===s.value).length])) as Record<Status,number>,[tasks]);
+ const visible=tasks.filter(t=>t.status===active);const name=(id:string|null)=>id?(members.find(m=>m.user_id===id)?.display_name||'Usuario asignado'):'Sin asignar';
+ const setField=<K extends keyof Form>(key:K,value:Form[K])=>setForm(prev=>({...prev,[key]:value}));
+ function openCreate(){setEditing(null);setForm(empty);setShowForm(true);setDetail(null);setError('');}
+ function openEdit(t:Task){setEditing(t);setDetail(null);setForm({title:t.title,description:t.description||'',status:t.status,assigned_to:t.assigned_to||'',due_date:t.due_date||'',start_date:t.start_date||'',estimated_hours:String(t.estimated_hours)});setShowForm(true);setError('');}
+ async function save(e:React.FormEvent){e.preventDefault();if(!org||!userId)return;setBusy(true);setError('');try{if(form.start_date&&form.due_date&&form.due_date<form.start_date){setError('La fecha límite no puede ser anterior al inicio.');return;}const payload={title:form.title.trim(),description:form.description.trim()||null,status:form.status,assigned_to:form.assigned_to||null,start_date:form.start_date||null,due_date:form.due_date||null,estimated_hours:Number(form.estimated_hours)};if(!payload.title){setError('El título es obligatorio.');return;}const response=editing?await client.from('tasks').update(payload).eq('id',editing.id).select('id').single():await client.from('tasks').insert({...payload,organization_id:org,created_by:userId}).select('id').single();if(response.error){setError(response.error.message);return;}setShowForm(false);setEditing(null);setActive(form.status);await refresh();}finally{setBusy(false);}}
+ async function changeStatus(t:Task,status:Status){setBusy(true);setError('');const {error}=await client.from('tasks').update({status}).eq('id',t.id).select('id').single();if(error)setError(error.message);else{setTasks(prev=>prev.map(x=>x.id===t.id?{...x,status}:x));if(detail?.id===t.id)setDetail({...t,status});}setBusy(false);}
+ const date=(s:string|null)=>s?new Date(s.includes('T')?s:s+'T12:00:00').toLocaleDateString('es-ES'):'Sin fecha';
+ return <Shell><p className="eyebrow">EJECUCIÓN</p><h1>Mis tareas · Equipo</h1><p className="muted">Crea, consulta y edita las tareas. Al cambiar el estado se moverán a la pestaña correspondiente.</p>
+ <div className="panel"><div className="task-heading"><h2>Tareas registradas <span className="muted">({tasks.length})</span></h2><button onClick={openCreate}>+ Nueva tarea</button></div>
+ <div className="task-tabs" role="tablist" aria-label="Estado de tareas">{STATUSES.map(s=><button type="button" role="tab" aria-selected={active===s.value} className={'task-tab '+(active===s.value?'task-tab-active':'')} key={s.value} onClick={()=>setActive(s.value)}>{s.label} <span className="task-count">{counts[s.value]}</span></button>)}</div>
+ {error&&<p className="error" role="alert">{error}</p>}{loading?<p className="muted">Cargando…</p>:visible.length===0?<p className="muted task-empty">No hay tareas en esta pestaña.</p>:visible.map(t=><div className="task-row" key={t.id}><div className="task-info"><strong>{t.title}</strong><p className="muted">{name(t.assigned_to)} · Creada: {date(t.created_at)} · Vence: {date(t.due_date)}</p></div><div className="task-actions"><button className="btn-secondary" onClick={()=>setDetail(t)}>Ver detalle</button><button className="btn-secondary" onClick={()=>openEdit(t)}>Editar</button><select aria-label={'Estado de '+t.title} value={t.status} disabled={busy} onChange={e=>void changeStatus(t,e.target.value as Status)}>{STATUSES.map(s=><option key={s.value} value={s.value}>{s.label}</option>)}</select></div></div>)}</div>
+ {detail&&<div className="panel" id="task-detail"><div className="task-heading"><h2>Detalle de tarea</h2><button className="btn-secondary" onClick={()=>setDetail(null)}>Cerrar</button></div><h3>{detail.title}</h3><p style={{whiteSpace:'pre-wrap'}}>{detail.description||'Sin descripción'}</p><dl className="task-details"><dt>Creación</dt><dd>{date(detail.created_at)}</dd><dt>Estado</dt><dd>{STATUSES.find(s=>s.value===detail.status)?.label}</dd><dt>Asignada a</dt><dd>{name(detail.assigned_to)}</dd><dt>Inicio</dt><dd>{date(detail.start_date)}</dd><dt>Fecha límite</dt><dd>{date(detail.due_date)}</dd><dt>Horas estimadas</dt><dd>{detail.estimated_hours} h</dd></dl><button onClick={()=>openEdit(detail)}>Editar tarea</button></div>}
+ {showForm&&<div className="panel" id="task-editor"><div className="task-heading"><h2>{editing?'Editar tarea':'Nueva tarea'}</h2><button className="btn-secondary" onClick={()=>setShowForm(false)}>Cancelar</button></div><form className="task-edit-form" onSubmit={save}><label>Título<input required maxLength={250} value={form.title} onChange={e=>setField('title',e.target.value)}/></label><label className="wide">Descripción<textarea rows={4} value={form.description} onChange={e=>setField('description',e.target.value)}/></label><label>Estado<select value={form.status} onChange={e=>setField('status',e.target.value as Status)}>{STATUSES.map(s=><option key={s.value} value={s.value}>{s.label}</option>)}</select></label><label>Persona asignada<select value={form.assigned_to} onChange={e=>setField('assigned_to',e.target.value)}><option value="">Sin asignar</option>{members.map(m=><option key={m.user_id} value={m.user_id}>{m.display_name}</option>)}</select></label><label>Fecha de inicio<input type="date" value={form.start_date} onChange={e=>setField('start_date',e.target.value)}/></label><label>Fecha límite<input type="date" value={form.due_date} onChange={e=>setField('due_date',e.target.value)}/></label><label>Horas estimadas<input type="number" min="0" step="0.25" required value={form.estimated_hours} onChange={e=>setField('estimated_hours',e.target.value)}/></label>{editing&&<label>Fecha de creación<input type="text" value={date(editing.created_at)} readOnly title="La fecha de creación es un dato de auditoría y no se modifica"/></label>}<div className="wide"><button disabled={busy}>{busy?'Guardando…':editing?'Guardar cambios':'Crear tarea'}</button></div></form>{error&&<p className="error" role="alert">{error}</p>}</div>}
+ </Shell>;
 }

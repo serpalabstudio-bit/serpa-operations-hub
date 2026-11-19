@@ -1,0 +1,19 @@
+'use client';
+import {useEffect,useState} from 'react';
+import Link from 'next/link';
+import {supabase} from '../../lib/supabase';
+export default function ResetPassword(){
+ const [email,setEmail]=useState(''); const [password,setPassword]=useState(''); const [confirm,setConfirm]=useState('');
+ const [ready,setReady]=useState(false); const [busy,setBusy]=useState(false); const [message,setMessage]=useState(''); const [error,setError]=useState(''); const [done,setDone]=useState(false);
+ useEffect(()=>{let active=true; const client=supabase();
+  const {data:{subscription}}=client.auth.onAuthStateChange((event,session)=>{if(active && session && (event==='PASSWORD_RECOVERY'||event==='SIGNED_IN'||event==='INITIAL_SESSION'))setReady(true)});
+  async function verify(){try{
+   const url=new URL(window.location.href); const code=url.searchParams.get('code'); const tokenHash=url.searchParams.get('token_hash'); const type=url.searchParams.get('type');
+   if(code){const {error}=await client.auth.exchangeCodeForSession(code);if(error)throw error;url.searchParams.delete('code');window.history.replaceState({},'',url.pathname+url.search);if(active)setReady(true)}
+   else if(tokenHash && (type==='recovery'||type==='invite')){const {error}=await client.auth.verifyOtp({token_hash:tokenHash,type:type as 'recovery'|'invite'});if(error)throw error;window.history.replaceState({},'',url.pathname);if(active)setReady(true)}
+   else {const {data:{session}}=await client.auth.getSession();if(active&&session)setReady(true)}
+  }catch(e){if(active)setError(e instanceof Error?e.message:'Enlace inválido o caducado. Solicita uno nuevo.')}}verify();return()=>{active=false;subscription.unsubscribe()};},[]);
+ async function send(e:React.FormEvent){e.preventDefault();setBusy(true);setError('');setMessage('');try{const {error}=await supabase().auth.resetPasswordForEmail(email,{redirectTo:`${window.location.origin}/reset-password`});if(error)throw error;setMessage('Si la cuenta existe, recibirás un enlace. Revisa también la carpeta de spam.')}catch(e){setError(e instanceof Error?e.message:'No se pudo enviar el correo')}finally{setBusy(false)}}
+ async function update(e:React.FormEvent){e.preventDefault();setError('');if(password.length<8){setError('La contraseña debe tener al menos 8 caracteres.');return}if(password!==confirm){setError('Las contraseñas no coinciden.');return}setBusy(true);try{const {error}=await supabase().auth.updateUser({password});if(error)throw error;setDone(true);setMessage('Contraseña establecida correctamente. Ya puedes iniciar sesión.');await supabase().auth.signOut()}catch(e){setError(e instanceof Error?e.message:'No se pudo actualizar la contraseña')}finally{setBusy(false)}}
+ return <div className="login"><div className="panel"><p className="eyebrow">SERPA LAB STUDIO</p><h1>{done?'Contraseña guardada':ready?'Establecer contraseña':'Recuperar acceso'}</h1>{message&&<p role="status">{message}</p>}{error&&<p className="error" role="alert">{error}</p>}{!done&&(ready?<form onSubmit={update} style={{display:'grid',gap:16}}><label>Nueva contraseña<input type="password" autoComplete="new-password" minLength={8} required value={password} onChange={e=>setPassword(e.target.value)}/></label><label>Repetir contraseña<input type="password" autoComplete="new-password" minLength={8} required value={confirm} onChange={e=>setConfirm(e.target.value)}/></label><button disabled={busy}>{busy?'Guardando…':'Guardar contraseña'}</button></form>:<form onSubmit={send} style={{display:'grid',gap:16}}><p>Introduce el correo de tu cuenta. Te enviaremos un enlace para crear una contraseña.</p><label>Correo electrónico<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><button disabled={busy}>{busy?'Enviando…':'Enviar enlace'}</button></form>)}<p style={{marginTop:18}}><Link className="action-link" href="/login">Volver al inicio de sesión</Link></p></div></div>
+}

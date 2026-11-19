@@ -1,0 +1,37 @@
+-- SERPA Operations Hub / MVP schema. Execute in Supabase SQL Editor.
+create extension if not exists pgcrypto;
+create table if not exists public.organizations(id uuid primary key default gen_random_uuid(),name text not null,created_at timestamptz not null default now());
+create table if not exists public.profiles(id uuid primary key references auth.users(id) on delete cascade,display_name text,created_at timestamptz not null default now());
+create table if not exists public.organization_members(organization_id uuid not null references public.organizations(id) on delete cascade,user_id uuid not null references auth.users(id) on delete cascade,role text not null default 'partner' check(role in ('admin','partner','collaborator')),weekly_capacity_hours numeric(6,2) not null default 5 check(weekly_capacity_hours>=0),primary key(organization_id,user_id));
+create table if not exists public.tasks(id uuid primary key default gen_random_uuid(),organization_id uuid not null references public.organizations(id) on delete cascade,title text not null check(length(trim(title))>0),description text,status text not null default 'todo' check(status in ('todo','in_progress','blocked','done')),priority text not null default 'medium' check(priority in ('low','medium','high')),start_date date,due_date date,estimated_hours numeric(8,2) not null default 0 check(estimated_hours>=0),actual_hours numeric(8,2) not null default 0 check(actual_hours>=0),created_by uuid references auth.users(id),assigned_to uuid references auth.users(id),source_key text,created_at timestamptz not null default now(),updated_at timestamptz not null default now(),constraint valid_task_dates check(start_date is null or due_date is null or due_date>=start_date),unique(organization_id,source_key));
+create table if not exists public.task_time_allocations(id uuid primary key default gen_random_uuid(),organization_id uuid not null references public.organizations(id) on delete cascade,task_id uuid not null references public.tasks(id) on delete cascade,user_id uuid not null references auth.users(id),week_start date not null,hours numeric(8,2) not null check(hours>=0),unique(task_id,user_id,week_start));
+create index if not exists tasks_org_status_idx on public.tasks(organization_id,status);
+create index if not exists tasks_org_due_idx on public.tasks(organization_id,due_date);
+create index if not exists allocations_user_week_idx on public.task_time_allocations(user_id,week_start);
+create or replace function public.is_org_member(org uuid) returns boolean language sql stable security definer set search_path='' as $$select exists(select 1 from public.organization_members m where m.organization_id=org and m.user_id=(select auth.uid()))$$;
+create or replace function public.is_org_admin(org uuid) returns boolean language sql stable security definer set search_path='' as $$select exists(select 1 from public.organization_members m where m.organization_id=org and m.user_id=(select auth.uid()) and m.role='admin')$$;
+revoke all on function public.is_org_member(uuid) from public;grant execute on function public.is_org_member(uuid) to authenticated;
+revoke all on function public.is_org_admin(uuid) from public;grant execute on function public.is_org_admin(uuid) to authenticated;
+alter table public.organizations enable row level security;
+alter table public.profiles enable row level security;
+alter table public.organization_members enable row level security;
+alter table public.tasks enable row level security;
+alter table public.task_time_allocations enable row level security;
+create policy "org read" on public.organizations for select to authenticated using(public.is_org_member(id));
+create policy "profile self read" on public.profiles for select to authenticated using(id=(select auth.uid()));
+create policy "profile self update" on public.profiles for update to authenticated using(id=(select auth.uid())) with check(id=(select auth.uid()));
+create policy "members read" on public.organization_members for select to authenticated using(public.is_org_member(organization_id));
+create policy "members admin insert" on public.organization_members for insert to authenticated with check(public.is_org_admin(organization_id));
+create policy "members admin update" on public.organization_members for update to authenticated using(public.is_org_admin(organization_id)) with check(public.is_org_admin(organization_id));
+create policy "members admin delete" on public.organization_members for delete to authenticated using(public.is_org_admin(organization_id));
+create policy "tasks read" on public.tasks for select to authenticated using(public.is_org_member(organization_id));
+create policy "tasks insert" on public.tasks for insert to authenticated with check(public.is_org_member(organization_id) and created_by=(select auth.uid()) and (assigned_to is null or exists(select 1 from public.organization_members m where m.organization_id=tasks.organization_id and m.user_id=tasks.assigned_to)));
+create policy "tasks update" on public.tasks for update to authenticated using(public.is_org_member(organization_id)) with check(public.is_org_member(organization_id) and (assigned_to is null or exists(select 1 from public.organization_members m where m.organization_id=tasks.organization_id and m.user_id=tasks.assigned_to)));
+create policy "tasks delete" on public.tasks for delete to authenticated using(public.is_org_admin(organization_id));
+create policy "allocations read" on public.task_time_allocations for select to authenticated using(public.is_org_member(organization_id));
+create policy "allocations insert" on public.task_time_allocations for insert to authenticated with check(public.is_org_member(organization_id) and exists(select 1 from public.tasks t where t.id=task_id and t.organization_id=task_time_allocations.organization_id) and exists(select 1 from public.organization_members m where m.organization_id=task_time_allocations.organization_id and m.user_id=task_time_allocations.user_id));
+create policy "allocations update" on public.task_time_allocations for update to authenticated using(public.is_org_member(organization_id)) with check(public.is_org_member(organization_id) and exists(select 1 from public.tasks t where t.id=task_id and t.organization_id=task_time_allocations.organization_id) and exists(select 1 from public.organization_members m where m.organization_id=task_time_allocations.organization_id and m.user_id=task_time_allocations.user_id));
+create policy "allocations delete" on public.task_time_allocations for delete to authenticated using(public.is_org_member(organization_id));
+-- Bootstrap the first organization with an authenticated user in SQL Editor (trusted admin context):
+-- insert into public.organizations(name) values('SERPA Lab Studio') returning id;
+-- insert into public.organization_members(organization_id,user_id,role) values('<org-uuid>','<auth-user-uuid>','admin');

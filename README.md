@@ -35,6 +35,7 @@ El Excel recibido contiene 41 tareas y 12 hitos. Sus datos se conservaron en `da
 Las etiquetas `Socio A/B/C` importadas aún no son UUID de usuarios; asigna las identidades reales antes de automatizar el reparto. Los valores `#VALUE!` de la hoja semanal se excluyeron.
 El Gantt 0.2 es **solo lectura**; arrastrar y editar barras, dependencias y CRM siguen pendientes. No hay conexión verificada ni despliegue automático.
 Vercel: nombre sugerido `serpabusiness`, sujeto a disponibilidad. Añade las dos variables de `.env.example` en el panel de Vercel.
+Actualización de despliegue SERPA Operations Hub v0.6
 
 
 ## Configuración recibida (18/11/2026)

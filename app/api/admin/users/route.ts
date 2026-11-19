@@ -7,7 +7,7 @@ async function authorize(request:NextRequest){
  const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
  const publicKey=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
  const secret=process.env.SUPABASE_SERVICE_ROLE_KEY;
- if(!url||!publicKey||!secret)throw new Error('Configura SUPABASE_SERVICE_ROLE_KEY en Vercel (solo servidor).');
+ if(!url||!publicKey||!secret)throw new Error('Falta la configuración de Supabase para consultar y modificar correos. Comprueba NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY y SUPABASE_SERVICE_ROLE_KEY en Vercel.');
  const token=request.headers.get('authorization')?.replace(/^Bearer\s+/i,'');
  if(!token)throw new Error('Sesión no válida.');
  const auth=createClient(url,publicKey,{auth:{persistSession:false,autoRefreshToken:false}});

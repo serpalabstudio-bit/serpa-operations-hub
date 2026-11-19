@@ -10,6 +10,7 @@ const addDays=(date:Date,days:number)=>{const d=new Date(date);d.setDate(d.getDa
 const fmt=(d:string)=>new Date(d+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'});
 export default function Dashboard(){
  const w=useWorkspace();const [period,setPeriod]=useState(90);const [owner,setOwner]=useState('all');const [events,setEvents]=useState<EventRow[]>([]);const [eventsError,setEventsError]=useState('');
+ useEffect(()=>{setPeriod(w.settings.plan_duration_days);},[w.settings.plan_duration_days]);
  const today=iso(new Date());const monday=addDays(new Date(),-((new Date().getDay()+6)%7));const weekStart=iso(monday);const weekEnd=iso(addDays(monday,6));
  useEffect(()=>{if(!w.org)return;let cancelled=false;(async()=>{const {data,error}=await w.client.from('team_events').select('id,event_date,title').eq('organization_id',w.org).gte('event_date',weekStart).lte('event_date',weekEnd).order('event_date');if(cancelled)return;if(error){setEventsError('No se pudieron consultar los eventos de la agenda.');setEvents([]);}else{setEventsError('');setEvents((data||[]) as EventRow[]);}})();return()=>{cancelled=true};},[w.client,w.org,weekStart,weekEnd]);
  const from=iso(addDays(new Date(),-(period-1)));
@@ -29,7 +30,7 @@ export default function Dashboard(){
  const maxWeekly=Math.max(1,...weekly.map(x=>x.count));
  return <Shell><div className="executive-dashboard">
   <div className="executive-header"><div><p className="eyebrow">SERPA LAB STUDIO · OPERACIONES</p><h1>Centro de control</h1><p className="muted">Estado operativo del equipo · {new Date().toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'})}</p></div><Link className="executive-cta" href="/tasks"><Plus size={17}/> Nueva tarea</Link></div>
-  <div className="executive-filters"><label>Período <select value={period} onChange={e=>setPeriod(Number(e.target.value))}><option value={7}>Últimos 7 días</option><option value={30}>Últimos 30 días</option><option value={90}>Últimos 90 días</option></select></label><label>Responsable <select value={owner} onChange={e=>setOwner(e.target.value)}><option value="all">Todo el equipo</option>{w.members.map(m=><option value={m.user_id} key={m.user_id}>{m.display_name}</option>)}</select></label><span className="muted">Las métricas del período se basan en la creación de tareas</span></div>
+  <div className="executive-filters"><label>Período <select value={period} onChange={e=>setPeriod(Number(e.target.value))}><option value={7}>Últimos 7 días</option><option value={30}>Últimos 30 días</option><option value={w.settings.plan_duration_days}>Plan configurado ({w.settings.plan_duration_days} días)</option></select></label><label>Responsable <select value={owner} onChange={e=>setOwner(e.target.value)}><option value="all">Todo el equipo</option>{w.members.map(m=><option value={m.user_id} key={m.user_id}>{m.display_name}</option>)}</select></label><span className="muted">Las métricas del período se basan en la creación de tareas</span></div>
   {w.error&&<p className="error" role="alert">{w.error}</p>}{w.loading?<p role="status" className="panel">Cargando indicadores…</p>:<>
   <div className="executive-kpis">{[
    {label:'Tareas del período',value:total,icon:<ListTodo size={20}/>,href:'/tasks'},

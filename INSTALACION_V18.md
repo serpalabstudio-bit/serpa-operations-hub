@@ -1,0 +1,2 @@
+# SERPA v1.8 — Eliminación de tareas
+Subir al repositorio original y desplegar. No requiere migración nueva si se aplicaron 001 y 004. La política tasks delete existente limita la eliminación a administradores. La eliminación es definitiva y las relaciones con ON DELETE CASCADE se eliminan. Probar con una tarea de prueba, cancelar primero y luego confirmar; verificar listado, detalle, paginación y auditoría. Comprobar que un socio no tiene acceso a eliminar. No se ha ejecutado build de producción.

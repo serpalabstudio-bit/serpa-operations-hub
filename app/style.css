@@ -69,3 +69,5 @@ button.task-delete:disabled{opacity:.55;cursor:not-allowed;}
 @media(max-width:768px){.pwa-notice{left:12px;right:12px;bottom:calc(88px + env(safe-area-inset-bottom));max-width:none;}}
 
 .push-settings{display:grid;gap:8px;padding:12px 0;border-bottom:1px solid #8884}.push-settings label{display:flex;align-items:center;gap:8px}.push-settings input[type=checkbox]{width:auto}
+
+.intel-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}.intel-grid>div{border:1px solid #82908755;border-radius:12px;padding:14px;display:grid;gap:4px}.intel-grid strong{font-size:1.8rem}.intel-form{display:grid;gap:14px}.intel-form label{display:grid;gap:6px}.intel-form textarea,.intel-form input:not([type=checkbox]){width:100%;box-sizing:border-box}.intel-form .intel-consent{display:flex;align-items:center;gap:8px}.intel-consent input{width:auto}.intel-actions{display:flex;flex-wrap:wrap;gap:8px}.intel-answer{white-space:pre-wrap;overflow-wrap:anywhere;padding:14px;border:1px solid #82908755;border-radius:12px}

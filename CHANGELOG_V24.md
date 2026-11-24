@@ -1,0 +1,6 @@
+# V24.0 Mobile Intelligence
+Base V23.0. Nuevo módulo /intelligence accesible desde menú escritorio y Más en móvil. Briefing local, prioridades propias por fecha, carga pendiente total (no equivale a carga semanal), borrador manual de tareas con confirmación y consulta IA opcional con métricas agregadas. No se envían títulos, nombres, IDs ni descripciones automáticamente. La consulta escrita sí se envía. Sin migraciones SQL. Conserva Web Push.
+## Instalación
+Desplegar en Preview. Para IA configurar OPENAI_API_KEY y OPENAI_MODEL (modelo compatible con Chat Completions y max_completion_tokens) en Vercel, solo servidor. Sin claves funciona el briefing y el borrador. Configurar límites de gasto y revisar privacidad del proveedor antes de activar. No hay limitador distribuido de peticiones en esta versión; uso interno de confianza únicamente. No hay historial persistente ni ejecución automática de IA. Dictado mediante teclado del sistema, no reconocimiento propio. Informes semanales automáticos y generación IA de tareas quedan pendientes.
+## Pruebas
+Comprobar login, navegación móvil, briefing contra tareas, creación confirmada, consulta sin consentimiento, sin clave y con clave, permisos RLS y notificaciones V23. Compilación completa pendiente si no hay dependencias locales.

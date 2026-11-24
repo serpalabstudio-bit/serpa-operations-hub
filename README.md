@@ -39,3 +39,6 @@ Vercel: nombre sugerido `serpabusiness`, sujeto a disponibilidad. Añade las dos
 
 ## Configuración recibida (18/11/2026)
 La URL de Supabase y clave **publishable** están configuradas localmente en `.env.local`, excluido del ZIP y Git por seguridad operativa. En Vercel configura `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` usando los valores facilitados. La URL `serpabusiness.vercel.app` está sujeta a disponibilidad y todavía no está desplegada.
+
+## V22.0 PWA
+Consultar [CHANGELOG_V22.md](CHANGELOG_V22.md) para instalación y validación.

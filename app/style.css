@@ -71,3 +71,16 @@ button.task-delete:disabled{opacity:.55;cursor:not-allowed;}
 .push-settings{display:grid;gap:8px;padding:12px 0;border-bottom:1px solid #8884}.push-settings label{display:flex;align-items:center;gap:8px}.push-settings input[type=checkbox]{width:auto}
 
 .intel-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}.intel-grid>div{border:1px solid #82908755;border-radius:12px;padding:14px;display:grid;gap:4px}.intel-grid strong{font-size:1.8rem}.intel-form{display:grid;gap:14px}.intel-form label{display:grid;gap:6px}.intel-form textarea,.intel-form input:not([type=checkbox]){width:100%;box-sizing:border-box}.intel-form .intel-consent{display:flex;align-items:center;gap:8px}.intel-consent input{width:auto}.intel-actions{display:flex;flex-wrap:wrap;gap:8px}.intel-answer{white-space:pre-wrap;overflow-wrap:anywhere;padding:14px;border:1px solid #82908755;border-radius:12px}
+/* V25: fixed-height mobile shell; only main scrolls, navigation never overlaps content. */
+@media(max-width:767px){
+ .shell{position:relative;display:grid;grid-template-rows:minmax(0,1fr) auto;height:100vh;height:100dvh;min-height:0;overflow:hidden}
+ .shell>main{min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;padding-bottom:0}
+ .shell>.mobile-nav{position:relative;inset:auto;grid-row:2;flex-shrink:0;z-index:50;margin:0;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px))}
+ .shell>.mobile-overlay{position:absolute}
+}
+.task-modal{width:min(960px,calc(100% - 32px));max-height:calc(100% - 32px);max-height:calc(100dvh - 32px);padding:0;border:1px solid #dce5df;border-radius:16px;background:white;color:#15323d;overflow:auto;overscroll-behavior:contain;box-shadow:0 20px 80px #0004}
+.task-modal::backdrop{background:#10251dc0}
+.task-modal>.panel{margin:0;border:0;box-shadow:none;overflow-wrap:anywhere}
+.task-modal>.panel>.task-heading:first-child{position:sticky;top:0;background:white;z-index:2;padding:12px 0;border-bottom:1px solid #e4e9e2}
+.task-detail-link{font-weight:700;text-decoration:underline;text-underline-offset:3px}
+@media(max-width:767px){.task-modal{width:calc(100% - 16px);max-height:calc(100dvh - 16px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));margin:auto}.task-modal input:not([type=checkbox]),.task-modal select,.task-modal textarea{font-size:16px;max-width:100%;min-height:44px}.task-modal button{min-height:44px}}

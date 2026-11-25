@@ -1,5 +1,5 @@
 /* Only public offline assets are cached. Never cache authenticated pages or API responses. */
-const CACHE = 'serpa-pwa-25.0.0';
+const CACHE = 'serpa-pwa-25.1.0';
 const OFFLINE = '/pwa/offline.html';
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll([OFFLINE, '/pwa/icon-192.png'])));

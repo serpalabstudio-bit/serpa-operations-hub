@@ -51,7 +51,7 @@ export async function POST(request:NextRequest){
   if(body.action==='invite'){
    if(!validEmail)return fail('Introduce un correo válido.');
    if(!validName(firstName)||!validName(lastName))return fail('Indica nombre y apellidos (máximo 100 caracteres cada uno).');
-   const role=['admin','partner','collaborator'].includes(body.role||'')?body.role:'partner';
+   const role='partner';
    const {data,error}=await admin.auth.admin.inviteUserByEmail(email,{data:{first_name:firstName,last_name:lastName,full_name:`${firstName} ${lastName}`},redirectTo:new URL('/reset-password',request.nextUrl.origin).toString()});
    if(error)return fail(error.message);
    if(!data.user)return fail('No se ha podido crear la invitación.');
